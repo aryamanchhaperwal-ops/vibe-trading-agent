@@ -36,7 +36,8 @@ export function authHeaders(): Record<string, string> {
 export async function withAuthTicket(url: string): Promise<string> {
   const key = getApiAuthKey();
   if (!key) return url;
-  const res = await fetch("/auth/sse-ticket", {
+  const baseUrl = import.meta.env.PROD ? import.meta.env.VITE_API_URL || "" : "";
+  const res = await fetch(`${baseUrl}/auth/sse-ticket`, {
     method: "POST",
     headers: authHeaders(),
   });

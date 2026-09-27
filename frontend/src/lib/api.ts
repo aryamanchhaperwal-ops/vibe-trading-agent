@@ -6,7 +6,7 @@ import type {
   OptionsPayoffResponse,
 } from "@/lib/options";
 
-const BASE = "";
+const BASE = import.meta.env.PROD ? import.meta.env.VITE_API_URL || "" : "";
 
 export class ApiError extends Error {
   status: number;
