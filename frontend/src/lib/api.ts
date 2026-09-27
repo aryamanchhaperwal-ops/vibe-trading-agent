@@ -178,6 +178,69 @@ export interface PortfolioReconnectState {
   finished_at: string | null;
 }
 
+export interface PaperPosition {
+  symbol: string;
+  quantity: number;
+  average_price: number;
+  current_price: number;
+  market_value: number;
+  unrealized_pnl: number;
+  pnl_percent: number;
+}
+
+export interface PaperPortfolio {
+  starting_cash: number;
+  cash: number;
+  invested_value: number;
+  market_value: number;
+  total_value: number;
+  realized_pnl: number;
+  unrealized_pnl: number;
+  total_return: number;
+  positions: PaperPosition[];
+  updated_at: string;
+}
+
+export interface PaperMonitorStatus {
+  enabled: boolean;
+  running: boolean;
+  cadence_seconds: number;
+  movement_threshold: number;
+  last_scan: string | null;
+  next_scan: string | null;
+  scanned: number;
+  last_error: string | null;
+  latest_opportunities: Array<{ symbol: string; decision: string; confidence?: number }>;
+  latest_alerts: Array<{ symbol: string; event: string; message: string; timestamp: string }>;
+  batch_errors?: Array<{ symbols: string[]; error: string }>;
+}
+
+export interface StockAnalystResponse {
+  status: string;
+  query: string;
+  symbols: string[];
+  observed_at: string;
+  evidence: Array<{
+    symbol: string;
+    status: string;
+    observed_at?: string;
+    market_data?: {
+      price: number;
+      price_change_approx_1m?: number | null;
+      sma20?: number;
+      trend?: string;
+      last_bar?: string;
+    };
+    fundamentals: Record<string, unknown>;
+    news: Array<{ title?: string; url?: string; source?: string; published?: string }>;
+    missing?: string[];
+  }>;
+  paper_positions: Array<{ symbol: string; quantity: number; average_price: number; current_price: number }>;
+  analysis: string;
+  model: string;
+  disclaimer: string;
+}
+
 export interface PortfolioSourceSettings {
   connection_id: string;
   label: string;
@@ -354,6 +417,43 @@ export const api = {
       `/correlation/regime?codes=${encodeURIComponent(codes)}&days=${encodeURIComponent(String(days))}`,
     ),
   getPortfolio: () => request<{ status: string; snapshot: PortfolioSnapshot | null }>("/api/portfolio"),
+  getPaperPortfolio: () => request<{ status: string; portfolio: PaperPortfolio }>("/api/paper/portfolio"),
+  paperBuy: (body: { symbol: string; quantity: number; price?: number; reason?: string; rationale?: string }) =>
+    request<{ status: string; trade: { portfolio: PaperPortfolio } }>("/api/paper/buy", { method: "POST", body: JSON.stringify(body) }),
+  paperSell: (body: { symbol: string; quantity: number; price?: number; reason?: string; rationale?: string }) =>
+    request<{ status: string; trade: { portfolio: PaperPortfolio } }>("/api/paper/sell", { method: "POST", body: JSON.stringify(body) }),
+  refreshPaperPortfolio: () => request<{ status: string; portfolio: PaperPortfolio }>("/api/paper/refresh", { method: "POST" }),
+  getPaperMonitorStatus: () => request<{ status: string; monitor: PaperMonitorStatus }>("/api/paper/monitor/status"),
+  configurePaperMonitor: (body: { enabled: boolean; cadence_seconds: number; movement_threshold: number }) =>
+    request<{ status: string; config: PaperMonitorStatus }>("/api/paper/monitor/config", { method: "PUT", body: JSON.stringify(body) }),
+  scanNifty500: () => request<{ scanned: number; batches: number; decisions: Array<{ symbol: string; decision: string; confidence?: number }> }>("/api/paper/scan/nifty500", { method: "POST" }),
+  analyzeStock: async (body: { query: string; symbols?: string[] }) => {
+    const controller = new AbortController();
+    let timer: number | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = window.setTimeout(() => {
+        controller.abort();
+        reject(new ApiError("Stock analysis timed out. Check local Ollama and retry.", 504));
+      }, 70_000);
+    });
+    try {
+      return await Promise.race([
+        request<StockAnalystResponse>("/api/stock-analyst/analyze", {
+          method: "POST",
+          body: JSON.stringify(body),
+          signal: controller.signal,
+        }),
+        timeout,
+      ]);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw new ApiError("Stock analysis timed out. Check local Ollama and retry.", 504);
+      }
+      throw error;
+    } finally {
+      if (timer !== undefined) window.clearTimeout(timer);
+    }
+  },
   refreshPortfolio: () => request<{ status: string; snapshot: PortfolioSnapshot }>("/api/portfolio/refresh", { method: "POST" }),
   getPortfolioRefreshStatus: () => request<{ status: string; refresh: PortfolioRefreshState }>("/api/portfolio/refresh-status"),
   reconnectPortfolioSource: (sourceId: string) =>

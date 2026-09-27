@@ -303,13 +303,25 @@ class ChatLLM:
         model_name: Model name.
     """
 
-    def __init__(self, model_name: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        model_name: Optional[str] = None,
+        *,
+        request_timeout: Optional[float] = None,
+        max_retries: Optional[int] = None,
+        max_tokens: Optional[int] = None,
+    ) -> None:
         """Initialize ChatLLM.
 
         Args:
             model_name: Model name; defaults to the environment variable value.
         """
-        self._llm = build_llm(model_name=model_name)
+        self._llm = build_llm(
+            model_name=model_name,
+            request_timeout=request_timeout,
+            max_retries=max_retries,
+            max_tokens=max_tokens,
+        )
         runtime_cfg = get_env_config().llm
         configured_model = (
             model_name or runtime_cfg.langchain_model_name

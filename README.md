@@ -2093,3 +2093,43 @@ MIT License — see [LICENSE](LICENSE)
 <p align="center">
   <img src="https://visitor-badge.laobi.icu/badge?page_id=HKUDS.Vibe-Trading&style=flat" alt="visitors"/>
 </p>
+# Local paper trading
+
+Vibe-Trading includes a broker-independent paper portfolio for Indian equities.
+It is persisted in `~/.vibe-trading/paper_trading/paper.sqlite3` (or the
+`VIBE_TRADING_HOME` directory), starts with `VIBE_TRADING_PAPER_STARTING_CASH`
+(default `1000000`), and never sends orders to a broker. Symbols without a
+market suffix are routed to NSE (`TCS` becomes `TCS.NS`); BSE symbols can use
+the `.BO` suffix.
+
+The dashboard's **Paper Trading** panel supports virtual buys, sells, and price
+refreshes. The authenticated API is available under `/api/paper/*`, and the
+conversational `paper_trading` tool supports portfolio, history, research, and
+trade commands. Every trade is stored with its price, fees, reason, and
+optional decision rationale. Resetting requires the exact confirmation
+`RESET PAPER PORTFOLIO`.
+
+Optional settings:
+
+* `VIBE_TRADING_PAPER_FEE_RATE` (default `0.001`)
+* `VIBE_TRADING_PAPER_STARTING_CASH` (default `1000000`)
+* `VIBE_TRADING_NIFTY500_FILE` to use a local constituent CSV instead of the
+  public Nifty Indices CSV
+* `VIBE_TRADING_NIFTY_BATCH_SIZE` (default `25`)
+* `VIBE_TRADING_PAPER_MONITOR_CADENCE_SECONDS` (default `900`, minimum `60`)
+* `VIBE_TRADING_PAPER_ALERT_COOLDOWN_MINUTES` (default `60`)
+* `VIBE_TRADING_PAPER_ALERT_TARGET` to select an enabled configured channel
+  delivery target by opaque target reference
+* `VIBE_TRADING_PAPER_AUTONOMOUS_EXECUTION` is recommendation-only by default;
+  set it explicitly to `true` only if autonomous paper execution is later
+  enabled. The monitoring scheduler currently records recommendations and does
+  not execute trades.
+
+Research reports explicitly identify unavailable fundamentals or news rather
+than inventing them. The NIFTY 500 scanner uses the existing market-data
+provider fallback chain in batches and records structured paper decisions.
+Monitoring is disabled by default and can be enabled from the dashboard or
+`/api/paper/monitor/config`; it reuses the existing scheduler and channel
+manager. Channel alerts require the corresponding adapter credentials or
+pairing and an enabled delivery target in the channel configuration. The
+scanner and monitor never place real-money orders.

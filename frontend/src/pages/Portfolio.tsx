@@ -16,6 +16,7 @@ import {
   WifiOff,
 } from "lucide-react";
 import { PortfolioSourceEditor } from "@/components/portfolio/PortfolioSourceEditor";
+import { PaperTradingPanel } from "@/components/portfolio/PaperTradingPanel";
 import { PortfolioCompatibilityBadge } from "@/components/portfolio/PortfolioCompatibilityBadge";
 import {
   api,
@@ -346,6 +347,7 @@ export function Portfolio() {
         </header>
 
         {error ? <div className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 p-4 text-sm text-danger"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />{error}</div> : null}
+        <PaperTradingPanel />
         {refreshing && refreshState ? <RefreshProgress state={refreshState} settings={portfolioSettings} /> : null}
         {loading ? <div className="flex h-56 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> : null}
 

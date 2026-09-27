@@ -1481,12 +1481,22 @@ def provider_diagnostics() -> dict[str, Any]:
     }
 
 
-def build_llm(*, model_name: Optional[str] = None, callbacks: Any = None) -> Any:
+def build_llm(
+    *,
+    model_name: Optional[str] = None,
+    callbacks: Any = None,
+    request_timeout: Optional[float] = None,
+    max_retries: Optional[int] = None,
+    max_tokens: Optional[int] = None,
+) -> Any:
     """Construct the configured LangChain chat model.
 
     Args:
         model_name: Model name; defaults to LANGCHAIN_MODEL_NAME.
         callbacks: Optional LangChain callbacks.
+        request_timeout: Optional per-client request timeout override.
+        max_retries: Optional per-client retry override.
+        max_tokens: Optional maximum generated token count.
 
     Returns:
         Provider-specific LangChain chat model.
@@ -1573,8 +1583,17 @@ def build_llm(*, model_name: Optional[str] = None, callbacks: Any = None) -> Any
         "api_key": api_key or None,
         "base_url": creds["base_url"] or None,
         "temperature": temperature,
-        "timeout": get_env_config().llm.timeout_seconds,
-        "max_retries": get_env_config().llm.max_retries,
+        "timeout": (
+            request_timeout
+            if request_timeout is not None
+            else get_env_config().llm.timeout_seconds
+        ),
+        "max_retries": (
+            max_retries
+            if max_retries is not None
+            else get_env_config().llm.max_retries
+        ),
+        "max_tokens": max_tokens,
         "callbacks": callbacks,
         # Ask for real token usage on streamed calls (issue #1224); endpoints
         # that reject stream_options self-heal in _stream_with_usage_fallback.

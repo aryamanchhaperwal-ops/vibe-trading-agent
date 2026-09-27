@@ -136,6 +136,7 @@ async def _run_startup_preflight() -> None:
         logging.getLogger(__name__).warning("Legacy state migration failed", exc_info=True)
     run_preflight(console)
     _start_scheduled_research_executor()
+    await start_paper_monitor()
     from src.config.accessor import get_env_config
 
     if get_env_config().agent_tuning.vibe_trading_channels_auto_start:
@@ -147,6 +148,7 @@ async def _stop_scheduled_research_on_shutdown() -> None:
     try:
         await _stop_channel_runtime()
     finally:
+        await stop_paper_monitor()
         await _stop_scheduled_research_executor()
 
 
@@ -257,6 +259,15 @@ register_live_routes(app)
 # --- Read-only portfolio dashboard ---
 from src.api.portfolio_routes import register_portfolio_routes  # noqa: E402
 register_portfolio_routes(app)
+
+from src.api.paper_trading_routes import register_paper_trading_routes  # noqa: E402
+register_paper_trading_routes(app)
+from src.api.stock_analyst_routes import register_stock_analyst_routes  # noqa: E402
+register_stock_analyst_routes(app)
+from src.api.paper_trading_routes import (  # noqa: E402
+    start_paper_monitor,
+    stop_paper_monitor,
+)
 
 from src.api.connection_routes import register_connection_routes  # noqa: E402
 register_connection_routes(app)
